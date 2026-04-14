@@ -1,40 +1,50 @@
-// 🔥 GEMINI FALLBACK (FIXED)
-const geminiRes = await fetch(
-  `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
-  {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      contents: [
-        {
-          parts: [{ text: message }]
-        }
-      ]
-    })
+export default async function handler(req, res) {
+  if (req.method !== "POST") {
+    return res.status(200).json({
+      message: "Use POST request"
+    });
   }
-);
 
-const geminiData = await geminiRes.json();
+  try {
+    const { message } = req.body;
 
-// 🔍 DEBUG (temporary)
-console.log("Gemini response:", JSON.stringify(geminiData));
+    if (!message) {
+      return res.status(400).json({
+        error: "Message is required"
+      });
+    }
 
-let reply = "No response";
+    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${process.env.OPENROUTER_API_KEY}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        model: "deepseek/deepseek-r1-0528:free", // 🔥 free model
+        messages: [
+          { role: "user", content: message }
+        ]
+      })
+    });
 
-// ✅ Safe extraction
-if (
-  geminiData?.candidates &&
-  geminiData.candidates.length > 0 &&
-  geminiData.candidates[0]?.content?.parts
-) {
-  reply = geminiData.candidates[0].content.parts
-    .map(p => p.text || "")
-    .join("");
-}
+    const data = await response.json();
 
-// ❗ Agar error object aaye
-if (geminiData.error) {
-  reply = "Gemini error: " + geminiData.error.message;
+    if (data?.choices?.length > 0) {
+      return res.status(200).json({
+        reply: data.choices[0].message.content
+      });
+    } else {
+      return res.status(200).json({
+        error: "No response from OpenRouter",
+        fullResponse: data
+      });
+    }
+
+  } catch (error) {
+    return res.status(500).json({
+      error: "Server error",
+      details: error.message
+    });
+  }
 }
