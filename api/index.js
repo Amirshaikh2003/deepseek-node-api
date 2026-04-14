@@ -56,7 +56,7 @@ export default async function handler(req, res) {
           "X-Title": "AI Chatbot"
         },
         body: JSON.stringify({
-          model: "openrouter/fre",
+          model: "openrouter/free",
           messages: [{ role: "user", content: message }]
         })
       });
