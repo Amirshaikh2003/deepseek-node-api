@@ -18,10 +18,12 @@ export default async function handler(req, res) {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${process.env.OPENROUTER_API_KEY}`,
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
+        "HTTP-Referer": "https://your-app.vercel.app",
+        "X-Title": "AI Chatbot"
       },
       body: JSON.stringify({
-        model: "deepseek/deepseek-r1-0528:free", // 🔥 free model
+        model: "openrouter/free", // 🔥 AUTO FREE MODEL
         messages: [
           { role: "user", content: message }
         ]
@@ -32,7 +34,8 @@ export default async function handler(req, res) {
 
     if (data?.choices?.length > 0) {
       return res.status(200).json({
-        reply: data.choices[0].message.content
+        reply: data.choices[0].message.content,
+        provider: "openrouter-free"
       });
     } else {
       return res.status(200).json({
