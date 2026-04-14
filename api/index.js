@@ -5,14 +5,18 @@ export default async function handler(req, res) {
     });
   }
 
-  const { message } = req.body;
-
   try {
+    const { message } = req.body;
+
+    if (!message) {
+      return res.status(400).json({ error: "Message is required" });
+    }
+
     const response = await fetch("https://api.deepseek.com/v1/chat/completions", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": "sk-8b72a711a79a4f5f8f98000a6aec9c9e"
+        "Authorization": `Bearer ${process.env.DEEPSEEK_API_KEY}`
       },
       body: JSON.stringify({
         model: "deepseek-chat",
@@ -24,11 +28,15 @@ export default async function handler(req, res) {
 
     const data = await response.json();
 
-    const reply = data.choices[0].message.content;
+    const reply =
+      data?.choices?.[0]?.message?.content || "No response from AI";
 
-    res.status(200).json({ reply });
+    return res.status(200).json({ reply });
 
   } catch (error) {
-    res.status(500).json({ error: "Something went wrong" });
+    return res.status(500).json({
+      error: "Server error",
+      details: error.message
+    });
   }
 }
