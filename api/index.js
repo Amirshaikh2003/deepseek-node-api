@@ -1,3 +1,103 @@
+const PROVIDERS = [
+  {
+    name: "groq-1",
+    type: "groq",
+    key: process.env.GROQ_API_KEY_1
+  },
+  {
+    name: "groq-2",
+    type: "groq",
+    key: process.env.GROQ_API_KEY_2
+  },
+  {
+    name: "openrouter",
+    type: "openrouter",
+    key: process.env.OPENROUTER_API_KEY
+  }
+];
+
+// 🔀 Shuffle providers (load balancing)
+function shuffle(array) {
+  return array.sort(() => Math.random() - 0.5);
+}
+
+// 🧠 Common system prompt (ENGLISH ONLY)
+const SYSTEM_PROMPT = `
+You are ClimbUP AI, a personal mentor for students.
+Always reply in clear, simple English.
+Be concise, helpful, and motivating.
+Explain concepts step-by-step when needed.
+`;
+
+// 🧠 AI Call Handler
+async function callAI(provider, message) {
+  try {
+    // ================= GROQ =================
+    if (provider.type === "groq") {
+      const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${provider.key}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          model: "llama-3.1-8b-instant",
+          messages: [
+            { role: "system", content: SYSTEM_PROMPT },
+            { role: "user", content: message }
+          ]
+        })
+      });
+
+      const data = await res.json();
+
+      if (data?.choices?.length > 0) {
+        return {
+          success: true,
+          reply: data.choices[0].message.content,
+          provider: provider.name
+        };
+      }
+    }
+
+    // ================= OPENROUTER =================
+    if (provider.type === "openrouter") {
+      const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${provider.key}`,
+          "Content-Type": "application/json",
+          "HTTP-Referer": "https://climbup.vercel.app",
+          "X-Title": "ClimbUP AI"
+        },
+        body: JSON.stringify({
+          model: "openrouter/free",
+          messages: [
+            { role: "system", content: SYSTEM_PROMPT },
+            { role: "user", content: message }
+          ]
+        })
+      });
+
+      const data = await res.json();
+
+      if (data?.choices?.length > 0) {
+        return {
+          success: true,
+          reply: data.choices[0].message.content,
+          provider: provider.name
+        };
+      }
+    }
+
+    return { success: false };
+
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+}
+
+// 🚀 MAIN HANDLER
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     return res.status(200).json({
@@ -5,113 +105,41 @@ export default async function handler(req, res) {
     });
   }
 
-  const { message } = req.body;
-
-  if (!message) {
-    return res.status(400).json({
-      error: "Message is required"
-    });
-  }
-
-  // =========================
-  // 🔥 STEP 1: GROQ KEY 1
-  // =========================
   try {
-    const groq1 = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${process.env.GROQ_API_KEY_1}`
-      },
-      body: JSON.stringify({
-        model: "llama-3.1-8b-instant",
-        messages: [{ role: "user", content: message }]
-      })
+    const { message } = req.body;
+
+    if (!message) {
+      return res.status(400).json({
+        error: "Message is required"
+      });
+    }
+
+    // 🔀 Shuffle providers (load balancing)
+    const providers = shuffle([...PROVIDERS]);
+
+    // 🔁 Try all providers
+    for (let provider of providers) {
+      const result = await callAI(provider, message);
+
+      if (result.success) {
+        return res.status(200).json({
+          reply: result.reply,
+          provider: result.provider
+        });
+      }
+    }
+
+    // 🚨 FINAL FALLBACK (ClimbUP UX)
+    return res.status(200).json({
+      reply:
+        "⚠️ The server is currently busy. Please try again in a few seconds. Keep going—you are doing great! 🚀",
+      provider: "fallback"
     });
 
-    const data1 = await groq1.json();
-
-    if (data1?.choices?.length > 0) {
-      return res.status(200).json({
-        reply: data1.choices[0].message.content,
-        provider: "groq-1"
-      });
-    }
-
-    throw new Error("Groq1 failed");
-
-  } catch (e1) {
-    console.log("Groq1 failed → OpenRouter");
-
-    // =========================
-    // 🔥 STEP 2: OPENROUTER FREE
-    // =========================
-    try {
-      const orRes = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${process.env.OPENROUTER_API_KEY}`,
-          "Content-Type": "application/json",
-          "HTTP-Referer": "https://your-app.vercel.app",
-          "X-Title": "AI Chatbot"
-        },
-        body: JSON.stringify({
-          model: "openrouter/free",
-          messages: [{ role: "user", content: message }]
-        })
-      });
-
-      const data2 = await orRes.json();
-
-      if (data2?.choices?.length > 0) {
-        return res.status(200).json({
-          reply: data2.choices[0].message.content,
-          provider: "openrouter"
-        });
-      }
-
-      throw new Error("OpenRouter failed");
-
-    } catch (e2) {
-      console.log("OpenRouter failed → Groq2");
-
-      // =========================
-      // 🔥 STEP 3: GROQ KEY 2
-      // =========================
-      try {
-        const groq2 = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${process.env.GROQ_API_KEY_2}`
-          },
-          body: JSON.stringify({
-            model: "llama-3.1-8b-instant",
-            messages: [{ role: "user", content: message }]
-          })
-        });
-
-        const data3 = await groq2.json();
-
-        if (data3?.choices?.length > 0) {
-          return res.status(200).json({
-            reply: data3.choices[0].message.content,
-            provider: "groq-2"
-          });
-        }
-
-        throw new Error("Groq2 failed");
-
-      } catch (e3) {
-        return res.status(500).json({
-          error: "All providers failed",
-          details: {
-            groq1: e1.message,
-            openrouter: e2.message,
-            groq2: e3.message
-          }
-        });
-      }
-    }
+  } catch (error) {
+    return res.status(500).json({
+      error: "Server error",
+      details: error.message
+    });
   }
 }
