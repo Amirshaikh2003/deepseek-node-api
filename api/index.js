@@ -21,7 +21,7 @@ export default async function handler(req, res) {
         "Authorization": `Bearer ${process.env.GROQ_API_KEY}`
       },
       body: JSON.stringify({
-        model: "llama-3.1-8b-instant", // 🔥 updated model
+        model: "llama-3.1-8b-instant", // ✅ WORKING MODEL
         messages: [
           { role: "user", content: message }
         ]
@@ -29,6 +29,9 @@ export default async function handler(req, res) {
     });
 
     const data = await response.json();
+
+    // 🔍 Debug (optional)
+    // console.log(data);
 
     if (data?.choices?.length > 0) {
       return res.status(200).json({
