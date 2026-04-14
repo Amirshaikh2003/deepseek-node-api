@@ -21,8 +21,18 @@ export default async function handler(req, res) {
 
     const data = await response.json();
 
-    const reply =
-      data?.candidates?.[0]?.content?.parts?.[0]?.text || "No response";
+    // 👇 DEBUG (temporary)
+    console.log("Gemini full response:", JSON.stringify(data));
+
+    // 👇 Safe parsing
+    let reply = "No response";
+
+    if (data.candidates && data.candidates.length > 0) {
+      const parts = data.candidates[0]?.content?.parts;
+      if (parts && parts.length > 0) {
+        reply = parts.map(p => p.text).join(" ");
+      }
+    }
 
     return res.status(200).json({ reply });
 
