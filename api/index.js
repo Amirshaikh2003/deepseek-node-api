@@ -24,7 +24,7 @@ export default async function handler(req, res) {
         "Authorization": `Bearer ${process.env.GROQ_API_KEY_1}`
       },
       body: JSON.stringify({
-        model: "llama-3.1-8b-instant",
+        model: "llama-3.1-8b-insant",
         messages: [{ role: "user", content: message }]
       })
     });
@@ -56,7 +56,7 @@ export default async function handler(req, res) {
           "X-Title": "AI Chatbot"
         },
         body: JSON.stringify({
-          model: "openrouter/free",
+          model: "openrouter/fre",
           messages: [{ role: "user", content: message }]
         })
       });
