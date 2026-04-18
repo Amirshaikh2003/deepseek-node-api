@@ -1,10 +1,11 @@
-const cron = require("node-cron");
 const { db, admin } = require("./firebase");
 const { fetchJobs } = require("./adzunaService");
 const { processJobs } = require("./jobProcessor");
 const { CITIES } = require("./config");
 
 async function updateJobs() {
+  console.log("🚀 Job update started...");
+
   for (const city of CITIES) {
     let allJobs = [];
 
@@ -22,14 +23,19 @@ async function updateJobs() {
       jobs: cleanJobs
     });
 
-    console.log(city, "updated");
+    console.log(`✅ ${city} updated (${cleanJobs.length} jobs)`);
   }
+
+  console.log("🎉 All cities updated");
 }
 
-cron.schedule("0 0 * * *", updateJobs, {
-  timezone: "Asia/Kolkata"
-});
+// 🔥 MAIN EXECUTION (important)
+async function run() {
+  await updateJobs();
 
-updateJobs();
+  console.log("✅ Job Runner Finished");
 
-console.log("Job Runner Running...");
+  process.exit(0); // 🔥 VERY IMPORTANT (GitHub ke liye)
+}
+
+run();
