@@ -4,39 +4,31 @@ const { DOMAINS } = require("./config");
 const APP_ID = process.env.ADZUNA_APP_ID;
 const APP_KEY = process.env.ADZUNA_APP_KEY;
 
-// 🔥 Smart query (avoid over-complex OR issues)
-function buildQuery() {
-  return DOMAINS.join(" ");
-}
-
-// 🚀 Fetch jobs
 async function fetchJobs(city, page = 1) {
-  try {
+  let allJobs = [];
+
+  for (const domain of DOMAINS) {
     const res = await axios.get(
       `https://api.adzuna.com/v1/api/jobs/in/search/${page}`,
       {
         params: {
           app_id: APP_ID,
           app_key: APP_KEY,
-          results_per_page: 50,
-          what: buildQuery(),
+          results_per_page: 20,   // 🔥 reduce per domain
+          what: domain,           // 🔥 single keyword
           where: city,
-          max_days_old: 7,     // 🔥 fresh jobs only
-          content_type: "application/json"
+          max_days_old: 7
         }
       }
     );
 
     const jobs = res.data.results || [];
+    console.log(`📍 ${city} - ${domain}: ${jobs.length}`);
 
-    console.log(`📍 ${city} → fetched ${jobs.length} jobs`);
-
-    return jobs;
-
-  } catch (err) {
-    console.error(`❌ ${city} fetch error:`, err.message);
-    return [];
+    allJobs.push(...jobs);
   }
+
+  return allJobs;
 }
 
 module.exports = { fetchJobs };
