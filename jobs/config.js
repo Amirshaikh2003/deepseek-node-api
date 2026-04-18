@@ -4,10 +4,19 @@ const DOMAINS = [
   "AI",
   "ML",
   "Data Science",
-  "C",
-  "C++"
+  "Software Developer",
+  "Backend Developer"
 ];
 
-const CITIES = ["pune", "mumbai"];
+// 🔥 Strong IT hubs (Maharashtra + Hyderabad)
+const CITIES = [
+  "mumbai",
+  "navi mumbai",
+  "thane",
+  "pune",
+  "nagpur",
+  "nashik",
+  "hyderabad"
+];
 
 module.exports = { DOMAINS, CITIES };
