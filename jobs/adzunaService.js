@@ -1,8 +1,8 @@
 const axios = require("axios");
 const { DOMAINS } = require("./config");
 
-const APP_ID = "YOUR_APP_ID";
-const APP_KEY = "YOUR_APP_KEY";
+const APP_ID = process.env.ADZUNA_APP_ID;
+const APP_KEY = process.env.ADZUNA_APP_KEY;
 
 function buildQuery() {
   return DOMAINS.join(" OR ");
